@@ -1,6 +1,8 @@
 package com.mbientlab.multimwdemo;
 
+import com.mbientlab.bletoolbox.MWScannerFragment;
 import com.mbientlab.bletoolbox.MWScannerFragment.ScannerCallback;
+import com.mbientlab.metawear.api.MetaWearBleService;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -65,10 +67,12 @@ public class MainActivity extends Activity implements ScannerCallback {
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-        if (id == R.id.action_settings) {
+        switch(item.getItemId()) {
+        case R.id.action_connect:
+            new MWScannerFragment().show(getFragmentManager(), "metawear_scanner_fragment");
             return true;
         }
+        
         return super.onOptionsItemSelected(item);
     }
 
@@ -96,5 +100,18 @@ public class MainActivity extends Activity implements ScannerCallback {
     @Override
     public void btDeviceSelected(BluetoothDevice device) {
         mainFrag.addMetwearBoard(device);
+    }
+    
+    @Override
+    protected void onResume() {
+        super.onResume();
+        registerReceiver(MetaWearBleService.getMetaWearBroadcastReceiver(), 
+                MetaWearBleService.getMetaWearIntentFilter());
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        unregisterReceiver(MetaWearBleService.getMetaWearBroadcastReceiver());
     }
 }

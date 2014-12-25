@@ -12,13 +12,16 @@ import com.mbientlab.metawear.api.controller.LED;
 import com.mbientlab.metawear.api.controller.LED.ColorChannel;
 import com.mbientlab.metawear.api.controller.MechanicalSwitch;
 
+import android.app.Activity;
 import android.app.Fragment;
 import android.bluetooth.BluetoothDevice;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -91,6 +94,21 @@ public class MainFragment extends Fragment implements ServiceConnection {
     }
 
     @Override
+    public void onAttach(Activity activity) {
+        super.onAttach(activity);
+        activity.getApplicationContext().bindService(new Intent(activity,MetaWearBleService.class), 
+                this, Context.BIND_AUTO_CREATE);
+    }
+    
+    
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        
+        getActivity().getApplicationContext().unbindService(this);
+    }
+    
+    @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_main, container,
@@ -110,7 +128,12 @@ public class MainFragment extends Fragment implements ServiceConnection {
             @Override
             public boolean onItemLongClick(AdapterView<?> parent, View view,
                     int position, long id) {
-                ((DeviceState) connectedDevices.getItem(position)).mwController.close(true);
+                DeviceState current= (DeviceState) connectedDevices.getItem(position);
+                
+                ((Accelerometer) current.mwController.getModuleController(Module.ACCELEROMETER)).stopComponents();
+                ((MechanicalSwitch) current.mwController.getModuleController(Module.MECHANICAL_SWITCH)).disableNotification();
+                
+                current.mwController.close(true);
                 return false;
             }
         });
@@ -133,7 +156,13 @@ public class MainFragment extends Fragment implements ServiceConnection {
         newState.device= mwBoard;
         newState.motion= "N/A";
         newState.mwController= mwService.getMetaWearController(mwBoard);
+        newState.mwController.clearCallbacks();
         newState.mwController.addDeviceCallback(new DeviceCallbacks() {
+            @Override
+            public void gattError(GattOperation gattOp, int status) {
+                Log.d("MainFragment", String.format("%s, %d", gattOp.toString(), status));
+            }
+
             @Override
             public void connected() {
                 connectedDevices.add(newState);
@@ -190,5 +219,6 @@ public class MainFragment extends Fragment implements ServiceConnection {
             }
         });
         
+        newState.mwController.connect();
     }
 }
