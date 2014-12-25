@@ -1,8 +1,11 @@
 package com.mbientlab.multimwdemo;
 
+import com.mbientlab.bletoolbox.MWScannerFragment.ScannerCallback;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -11,7 +14,7 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements ScannerCallback {
     private final static String FRAGMENT_KEY= "com.mbientlab.multimwdemo.MainActivity.FRAGMENT_KEY";
     private final static int REQUEST_ENABLE_BT= 0;
 
@@ -88,5 +91,10 @@ public class MainActivity extends Activity {
         if (mainFrag != null) {
             getFragmentManager().putFragment(outState, FRAGMENT_KEY, mainFrag);
         }
+    }
+
+    @Override
+    public void btDeviceSelected(BluetoothDevice device) {
+        mainFrag.addMetwearBoard(device);
     }
 }

@@ -1,7 +1,16 @@
 package com.mbientlab.multimwdemo;
 
+import java.util.HashSet;
+
 import com.mbientlab.metawear.api.MetaWearBleService;
 import com.mbientlab.metawear.api.MetaWearController;
+import com.mbientlab.metawear.api.Module;
+import com.mbientlab.metawear.api.MetaWearController.DeviceCallbacks;
+import com.mbientlab.metawear.api.controller.Accelerometer;
+import com.mbientlab.metawear.api.controller.Accelerometer.Orientation;
+import com.mbientlab.metawear.api.controller.LED;
+import com.mbientlab.metawear.api.controller.LED.ColorChannel;
+import com.mbientlab.metawear.api.controller.MechanicalSwitch;
 
 import android.app.Fragment;
 import android.bluetooth.BluetoothDevice;
@@ -72,8 +81,11 @@ public class MainFragment extends Fragment implements ServiceConnection {
         }
     }
     
+    private static final short DURATION= 1000;
+    
     private ConnectedDeviceAdapter connectedDevices= null;
     private MetaWearBleService mwService;
+    private final HashSet<MetaWearController> activeControllers= new HashSet<>();
     
     public MainFragment() {
     }
@@ -89,6 +101,7 @@ public class MainFragment extends Fragment implements ServiceConnection {
     public void onViewCreated(View view, Bundle savedInstanceState) {
         if (connectedDevices == null) {
             connectedDevices= new ConnectedDeviceAdapter(getActivity());
+            connectedDevices.setNotifyOnChange(true);
         }
         
         ListView connectedDevicesView= (ListView) view.findViewById(R.id.connected_devices);
@@ -111,6 +124,71 @@ public class MainFragment extends Fragment implements ServiceConnection {
     @Override
     public void onServiceDisconnected(ComponentName name) {
         // TODO Auto-generated method stub
+        
+    }
+    
+    public void addMetwearBoard(BluetoothDevice mwBoard) {
+        final DeviceState newState= new DeviceState();
+        
+        newState.device= mwBoard;
+        newState.motion= "N/A";
+        newState.mwController= mwService.getMetaWearController(mwBoard);
+        newState.mwController.addDeviceCallback(new DeviceCallbacks() {
+            @Override
+            public void connected() {
+                connectedDevices.add(newState);
+                activeControllers.add(newState.mwController);
+                
+                Accelerometer accelCtrllr= (Accelerometer) newState.mwController.getModuleController(Module.ACCELEROMETER);
+                accelCtrllr.enableOrientationDetection();
+                accelCtrllr.startComponents();
+                
+                ((MechanicalSwitch) newState.mwController.getModuleController(Module.MECHANICAL_SWITCH)).enableNotification();
+            }
+            
+            @Override
+            public void disconnected() {
+                connectedDevices.remove(newState);
+            }
+        }).addModuleCallback(new MechanicalSwitch.Callbacks() {
+            @Override
+            public void pressed() {
+                newState.buttonPressed= true;
+                connectedDevices.notifyDataSetChanged();
+                
+                for(MetaWearController it: activeControllers) {
+                    if (it != newState.mwController) {
+                        LED ledCtrllr= (LED) it.getModuleController(Module.LED);
+                        ledCtrllr.setColorChannel(ColorChannel.GREEN).withHighIntensity((byte) 16)
+                                .withLowIntensity((byte) 16)
+                                .withHighTime(DURATION)
+                                .withPulseDuration(DURATION)
+                                .withRepeatCount((byte) -1)
+                                .commit();
+                        ledCtrllr.play(false);
+                    }
+                }
+            }
+
+            @Override
+            public void released() {
+                newState.buttonPressed= false;
+                connectedDevices.notifyDataSetChanged();
+                
+                for(MetaWearController it: activeControllers) {
+                    if (it != newState.mwController) {
+                        LED ledCtrllr= (LED) it.getModuleController(Module.LED);
+                        ledCtrllr.stop(true);;
+                    }
+                }
+            }
+        }).addModuleCallback(new Accelerometer.Callbacks() {
+            @Override
+            public void orientationChanged(Orientation accelOrientation) {
+                newState.motion= accelOrientation.name();
+                connectedDevices.notifyDataSetChanged();
+            }
+        });
         
     }
 }

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="label_scan">Scan</string>
+    <string name="label_stop">Stop</string>
+    <string name="text_rssi_visual">Visual interpretation of the RSSI value</string>
+</resources>
