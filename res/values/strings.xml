@@ -9,4 +9,13 @@
 
     <string name="error_title">Error</string>
     <string name="error_no_bluetooth">Bluetooth device not deteted</string>
+    
+    <string name="text_front_up">Front, Up</string>
+    <string name="text_front_down">Front, Down</string>
+    <string name="text_front_left">Front, Left</string>
+    <string name="text_front_right">Front, Right</string>
+    <string name="text_back_up">Back, Up</string>
+    <string name="text_back_down">Back, Down</string>
+    <string name="text_back_left">Back, Left</string>
+    <string name="text_back_right">Back, Right</string>
 </resources>

@@ -1,5 +1,6 @@
 package com.mbientlab.multimwdemo;
 
+import java.util.HashMap;
 import java.util.HashSet;
 
 import com.mbientlab.metawear.api.MetaWearBleService;
@@ -19,6 +20,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.res.Resources;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
@@ -86,6 +88,7 @@ public class MainFragment extends Fragment implements ServiceConnection {
     
     private static final short DURATION= 1000;
     
+    private HashMap<Orientation, String> orientationNames= null;
     private ConnectedDeviceAdapter connectedDevices= null;
     private MetaWearBleService mwService;
     private final HashSet<MetaWearController> activeControllers= new HashSet<>();
@@ -96,8 +99,22 @@ public class MainFragment extends Fragment implements ServiceConnection {
     @Override
     public void onAttach(Activity activity) {
         super.onAttach(activity);
+        
         activity.getApplicationContext().bindService(new Intent(activity,MetaWearBleService.class), 
                 this, Context.BIND_AUTO_CREATE);
+        if (orientationNames == null) {
+            Resources resouces= activity.getResources();
+            
+            orientationNames= new HashMap<>();
+            orientationNames.put(Orientation.BACK_LANDSCAPE_LEFT, resouces.getString(R.string.text_back_left));
+            orientationNames.put(Orientation.BACK_LANDSCAPE_RIGHT, resouces.getString(R.string.text_back_right));
+            orientationNames.put(Orientation.BACK_PORTRAIT_DOWN, resouces.getString(R.string.text_back_down));
+            orientationNames.put(Orientation.BACK_PORTRAIT_UP, resouces.getString(R.string.text_back_up));
+            orientationNames.put(Orientation.FRONT_LANDSCAPE_LEFT, resouces.getString(R.string.text_front_left));
+            orientationNames.put(Orientation.FRONT_LANDSCAPE_RIGHT, resouces.getString(R.string.text_front_right));
+            orientationNames.put(Orientation.FRONT_PORTRAIT_DOWN, resouces.getString(R.string.text_front_down));
+            orientationNames.put(Orientation.FRONT_PORTRAIT_UP, resouces.getString(R.string.text_front_up));
+        }
     }
     
     
@@ -214,7 +231,7 @@ public class MainFragment extends Fragment implements ServiceConnection {
         }).addModuleCallback(new Accelerometer.Callbacks() {
             @Override
             public void orientationChanged(Orientation accelOrientation) {
-                newState.motion= accelOrientation.name();
+                newState.motion= orientationNames.get(accelOrientation);
                 connectedDevices.notifyDataSetChanged();
             }
         });
