@@ -38,7 +38,7 @@ public class MainFragment extends Fragment implements ServiceConnection {
         public MetaWearController mwController;
         public BluetoothDevice device;
         public boolean buttonPressed;
-        public String motion;
+        public String orientation;
     }
     
     private class ConnectedDeviceAdapter extends ArrayAdapter<DeviceState> {
@@ -57,7 +57,7 @@ public class MainFragment extends Fragment implements ServiceConnection {
                 viewHolder.deviceAddress= (TextView) convertView.findViewById(R.id.device_address);
                 viewHolder.deviceName= (TextView) convertView.findViewById(R.id.device_name);
                 viewHolder.buttonState= (TextView) convertView.findViewById(R.id.device_button);
-                viewHolder.motion= (TextView) convertView.findViewById(R.id.device_motion);
+                viewHolder.orientation= (TextView) convertView.findViewById(R.id.device_orientation);
                 convertView.setTag(viewHolder);
             } else {
                 viewHolder = (ViewHolder) convertView.getTag();
@@ -74,7 +74,7 @@ public class MainFragment extends Fragment implements ServiceConnection {
             
             viewHolder.deviceAddress.setText(current.device.getAddress());
             viewHolder.buttonState.setText(Boolean.valueOf(current.buttonPressed).toString());
-            viewHolder.motion.setText(current.motion);
+            viewHolder.orientation.setText(current.orientation);
             return convertView;
         }
         
@@ -82,7 +82,7 @@ public class MainFragment extends Fragment implements ServiceConnection {
             public TextView deviceAddress;
             public TextView deviceName;
             public TextView buttonState;
-            public TextView motion;
+            public TextView orientation;
         }
     }
     
@@ -128,6 +128,7 @@ public class MainFragment extends Fragment implements ServiceConnection {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
             Bundle savedInstanceState) {
+        setRetainInstance(true);
         return inflater.inflate(R.layout.fragment_main, container,
                 false);
     }
@@ -171,7 +172,6 @@ public class MainFragment extends Fragment implements ServiceConnection {
         final DeviceState newState= new DeviceState();
         
         newState.device= mwBoard;
-        newState.motion= "N/A";
         newState.mwController= mwService.getMetaWearController(mwBoard);
         newState.mwController.clearCallbacks();
         newState.mwController.addDeviceCallback(new DeviceCallbacks() {
@@ -186,6 +186,7 @@ public class MainFragment extends Fragment implements ServiceConnection {
                 activeControllers.add(newState.mwController);
                 
                 Accelerometer accelCtrllr= (Accelerometer) newState.mwController.getModuleController(Module.ACCELEROMETER);
+                accelCtrllr.stopComponents();
                 accelCtrllr.enableOrientationDetection();
                 accelCtrllr.startComponents();
                 
@@ -231,7 +232,7 @@ public class MainFragment extends Fragment implements ServiceConnection {
         }).addModuleCallback(new Accelerometer.Callbacks() {
             @Override
             public void orientationChanged(Orientation accelOrientation) {
-                newState.motion= orientationNames.get(accelOrientation);
+                newState.orientation= orientationNames.get(accelOrientation);
                 connectedDevices.notifyDataSetChanged();
             }
         });
