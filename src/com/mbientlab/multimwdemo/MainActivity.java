@@ -9,14 +9,18 @@ import android.app.AlertDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothManager;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.IBinder;
+import android.support.v4.content.LocalBroadcastManager;
 import android.view.Menu;
 import android.view.MenuItem;
 
-public class MainActivity extends Activity implements ScannerCallback {
+public class MainActivity extends Activity implements ScannerCallback, ServiceConnection {
     private final static String FRAGMENT_KEY= "com.mbientlab.multimwdemo.MainActivity.FRAGMENT_KEY";
     private final static int REQUEST_ENABLE_BT= 0;
 
@@ -52,6 +56,16 @@ public class MainActivity extends Activity implements ScannerCallback {
             final Intent enableIntent= new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
             startActivityForResult(enableIntent, REQUEST_ENABLE_BT);
         }
+        
+        getApplicationContext().bindService(new Intent(this, MetaWearBleService.class), 
+                this, Context.BIND_AUTO_CREATE);
+    }
+    
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        
+        getApplicationContext().unbindService(this);
     }
 
     @Override
@@ -101,17 +115,18 @@ public class MainActivity extends Activity implements ScannerCallback {
     public void btDeviceSelected(BluetoothDevice device) {
         mainFrag.addMetwearBoard(device);
     }
-    
+
     @Override
-    protected void onResume() {
-        super.onResume();
-        registerReceiver(MetaWearBleService.getMetaWearBroadcastReceiver(), 
+    public void onServiceConnected(ComponentName name, IBinder service) {
+        ((MetaWearBleService.LocalBinder) service).getService().useLocalBroadcasterManager(true);
+        
+        LocalBroadcastManager.getInstance(this).registerReceiver(MetaWearBleService.getMetaWearBroadcastReceiver(), 
                 MetaWearBleService.getMetaWearIntentFilter());
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
-        unregisterReceiver(MetaWearBleService.getMetaWearBroadcastReceiver());
+    public void onServiceDisconnected(ComponentName name) {
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(MetaWearBleService.getMetaWearBroadcastReceiver());
+        
     }
 }

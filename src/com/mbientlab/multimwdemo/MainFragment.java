@@ -100,7 +100,7 @@ public class MainFragment extends Fragment implements ServiceConnection {
     public void onAttach(Activity activity) {
         super.onAttach(activity);
         
-        activity.getApplicationContext().bindService(new Intent(activity,MetaWearBleService.class), 
+        activity.getApplicationContext().bindService(new Intent(activity, MetaWearBleService.class), 
                 this, Context.BIND_AUTO_CREATE);
         if (orientationNames == null) {
             Resources resouces= activity.getResources();
@@ -173,7 +173,7 @@ public class MainFragment extends Fragment implements ServiceConnection {
         
         newState.device= mwBoard;
         newState.mwController= mwService.getMetaWearController(mwBoard);
-        newState.mwController.clearCallbacks();
+        newState.mwController.setRetainState(false);
         newState.mwController.addDeviceCallback(new DeviceCallbacks() {
             @Override
             public void gattError(GattOperation gattOp, int status) {
