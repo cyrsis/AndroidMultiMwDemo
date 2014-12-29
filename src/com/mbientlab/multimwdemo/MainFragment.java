@@ -1,5 +1,6 @@
 package com.mbientlab.multimwdemo;
 
+import java.util.ArrayDeque;
 import java.util.HashMap;
 import java.util.HashSet;
 
@@ -39,6 +40,7 @@ public class MainFragment extends Fragment implements ServiceConnection {
         public BluetoothDevice device;
         public boolean buttonPressed;
         public String orientation;
+        public ColorChannel ledColor= null;
     }
     
     private class ConnectedDeviceAdapter extends ArrayAdapter<DeviceState> {
@@ -92,8 +94,13 @@ public class MainFragment extends Fragment implements ServiceConnection {
     private ConnectedDeviceAdapter connectedDevices= null;
     private MetaWearBleService mwService;
     private final HashSet<MetaWearController> activeControllers= new HashSet<>();
+    private final ArrayDeque<ColorChannel> availableColors;
     
     public MainFragment() {
+        availableColors= new ArrayDeque<>();
+        for(ColorChannel it: ColorChannel.values()) {
+            availableColors.add(it);
+        }
     }
 
     @Override
@@ -150,6 +157,7 @@ public class MainFragment extends Fragment implements ServiceConnection {
                 
                 ((Accelerometer) current.mwController.getModuleController(Module.ACCELEROMETER)).stopComponents();
                 ((MechanicalSwitch) current.mwController.getModuleController(Module.MECHANICAL_SWITCH)).disableNotification();
+                ((LED) current.mwController.getModuleController(Module.LED)).stop(true);
                 
                 current.mwController.close(true);
                 return false;
@@ -174,6 +182,44 @@ public class MainFragment extends Fragment implements ServiceConnection {
         newState.device= mwBoard;
         newState.mwController= mwService.getMetaWearController(mwBoard);
         newState.mwController.setRetainState(false);
+        
+        if (!availableColors.isEmpty()) {
+            newState.ledColor= availableColors.poll();
+            newState.mwController.addModuleCallback(new MechanicalSwitch.Callbacks() {
+                @Override
+                public void pressed() {
+                    newState.buttonPressed= true;
+                    connectedDevices.notifyDataSetChanged();
+                    
+                    for(MetaWearController it: activeControllers) {
+                        if (it != newState.mwController) {
+                            LED ledCtrllr= (LED) it.getModuleController(Module.LED);
+                            ledCtrllr.setColorChannel(newState.ledColor).withHighIntensity((byte) 16)
+                                    .withLowIntensity((byte) 16)
+                                    .withHighTime(DURATION)
+                                    .withPulseDuration(DURATION)
+                                    .withRepeatCount((byte) -1)
+                                    .commit();
+                            ledCtrllr.play(false);
+                        }
+                    }
+                }
+
+                @Override
+                public void released() {
+                    newState.buttonPressed= false;
+                    connectedDevices.notifyDataSetChanged();
+                    
+                    for(MetaWearController it: activeControllers) {
+                        if (it != newState.mwController) {
+                            LED ledCtrllr= (LED) it.getModuleController(Module.LED);
+                            ledCtrllr.stop(true);
+                        }
+                    }
+                }
+            });
+        }
+        
         newState.mwController.addDeviceCallback(new DeviceCallbacks() {
             @Override
             public void receivedGattError(GattOperation gattOp, int status) {
@@ -191,43 +237,17 @@ public class MainFragment extends Fragment implements ServiceConnection {
                 accelCtrllr.startComponents();
                 
                 ((MechanicalSwitch) newState.mwController.getModuleController(Module.MECHANICAL_SWITCH)).enableNotification();
+                
+                ((LED) newState.mwController.getModuleController(Module.LED)).stop(true);
             }
             
             @Override
             public void disconnected() {
                 connectedDevices.remove(newState);
                 activeControllers.remove(newState.mwController);
-            }
-        }).addModuleCallback(new MechanicalSwitch.Callbacks() {
-            @Override
-            public void pressed() {
-                newState.buttonPressed= true;
-                connectedDevices.notifyDataSetChanged();
                 
-                for(MetaWearController it: activeControllers) {
-                    if (it != newState.mwController) {
-                        LED ledCtrllr= (LED) it.getModuleController(Module.LED);
-                        ledCtrllr.setColorChannel(ColorChannel.GREEN).withHighIntensity((byte) 16)
-                                .withLowIntensity((byte) 16)
-                                .withHighTime(DURATION)
-                                .withPulseDuration(DURATION)
-                                .withRepeatCount((byte) -1)
-                                .commit();
-                        ledCtrllr.play(false);
-                    }
-                }
-            }
-
-            @Override
-            public void released() {
-                newState.buttonPressed= false;
-                connectedDevices.notifyDataSetChanged();
-                
-                for(MetaWearController it: activeControllers) {
-                    if (it != newState.mwController) {
-                        LED ledCtrllr= (LED) it.getModuleController(Module.LED);
-                        ledCtrllr.stop(true);;
-                    }
+                if (newState.ledColor != null) {
+                    availableColors.add(newState.ledColor);
                 }
             }
         }).addModuleCallback(new Accelerometer.Callbacks() {
