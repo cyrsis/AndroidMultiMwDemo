@@ -176,7 +176,7 @@ public class MainFragment extends Fragment implements ServiceConnection {
         newState.mwController.setRetainState(false);
         newState.mwController.addDeviceCallback(new DeviceCallbacks() {
             @Override
-            public void gattError(GattOperation gattOp, int status) {
+            public void receivedGattError(GattOperation gattOp, int status) {
                 Log.d("MainFragment", String.format("%s, %d", gattOp.toString(), status));
             }
 
@@ -196,6 +196,7 @@ public class MainFragment extends Fragment implements ServiceConnection {
             @Override
             public void disconnected() {
                 connectedDevices.remove(newState);
+                activeControllers.remove(newState.mwController);
             }
         }).addModuleCallback(new MechanicalSwitch.Callbacks() {
             @Override
