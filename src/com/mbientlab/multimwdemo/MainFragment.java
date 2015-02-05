@@ -159,7 +159,7 @@ public class MainFragment extends Fragment implements ServiceConnection {
                 ((MechanicalSwitch) current.mwController.getModuleController(Module.MECHANICAL_SWITCH)).disableNotification();
                 ((LED) current.mwController.getModuleController(Module.LED)).stop(true);
                 
-                current.mwController.close(true);
+                current.mwController.close(true, true);
                 return false;
             }
         });
